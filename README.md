@@ -1,2 +1,2 @@
-# std-thread_vs_openmp
-Performance comparison of a C++11 std::thread pool and the shared-memory parallel programming API OpenMP.
+# std::thread vs OpenMP
+A performance comparison of a threadpool built from C++11's std::thread library and the shared-memory parallel programming API OpenMP.
