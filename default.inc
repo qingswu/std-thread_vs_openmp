@@ -11,7 +11,7 @@ AR       = ar
 RM       = rm -f
 
 # Flags to be passed to both C and C++ code
-CPPFLAGS = -Wall -Wextra -pedantic -O3
+CPPFLAGS = -Wall -Wextra -pedantic -O3 -fopenmp
 
 # Flags to be passed to C code
 CFLAGS   = 
@@ -64,7 +64,7 @@ CFLAGS_EXTRA =
 
 # Mandatory arguments to the C++ compiler.  These arguments will be
 # passed even if CXXFLAGS has been overridden by command-line arguments.
-CXXFLAGS_EXTRA = -std=c++11
+CXXFLAGS_EXTRA = -std=c++1y
 
 # Mandatory arguments to the linker, before the listing of object
 # files.  These arguments will be passed even if LDFLAGS has been
