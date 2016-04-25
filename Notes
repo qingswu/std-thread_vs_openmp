@@ -1,0 +1,6 @@
+STREAM.cc uses a lambda function benchmark for implementing each STREAM operation.
+It utilizes the variadic templated ParallelFor to pass parameters to the callable function.
+
+STREAM_capture_test.cc also implements benchmark, but instead captures the arrays and therefore
+does not need any parameters forwarded to it by ParallelFor. I found that the performance of
+this method is not as good as STREAM.cc, but pretty close.
