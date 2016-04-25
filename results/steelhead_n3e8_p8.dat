@@ -1,0 +1,47 @@
+
+ - - - - - - - - - | COPY | - - - - - - - - -
+
+single thread performance
+Average: 379.934 ms
+
+std::thread ThreadPool performance
+Average: 175.912 ms
+
+OpenMP performance
+Average: 174.473 ms
+
+
+ - - - - - - - - - | SCALE | - - - - - - - - -
+
+single thread performance
+Average: 417.192 ms
+
+std::thread ThreadPool performance
+Average: 172.987 ms
+
+OpenMP performance
+Average: 172.39 ms
+
+
+ - - - - - - - - - | ADD | - - - - - - - - -
+
+single thread performance
+Average: 637.275 ms
+
+std::thread ThreadPool performance
+Average: 229.115 ms
+
+OpenMP performance
+Average: 229.078 ms
+
+
+ - - - - - - - - - | TRIAD | - - - - - - - - -
+
+single thread performance
+Average: 643.32 ms
+
+std::thread ThreadPool performance
+Average: 234.933 ms
+
+OpenMP performance
+Average: 229.291 ms
