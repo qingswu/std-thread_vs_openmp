@@ -3,6 +3,8 @@
 #include <vector>
 #include <cassert>
 #include <chrono>
+#include <algorithm>
+#include <numeric>
 
 class Matrix
 {
@@ -58,6 +60,21 @@ double convertDuration(const T& dur)
     return count * 1.0e-9;
 }
 
+template<class T>
+auto processTimes(const std::vector<T>& times)
+{
+    auto extrema = std::minmax_element(times.begin(), times.end());
+    T min = *extrema.first;
+    T max = *extrema.second;
+    T mean = std::accumulate(times.begin(), times.end(), T::zero()) / times.size();
+
+    double minSec = convertDuration(min);
+    double meanSec = convertDuration(mean);
+    double maxSec = convertDuration(max);
+
+    return std::make_tuple(minSec, meanSec, maxSec);
+}
+
 int main(const int argc, const char** argv)
 {
     size_t matSize = 1000;
@@ -79,9 +96,7 @@ int main(const int argc, const char** argv)
     using clock = std::chrono::high_resolution_clock;
     using duration = clock::duration;
 
-    duration minTime = duration::zero();
-    duration maxTime = duration::zero();
-    duration totTime = duration::zero();
+    std::vector<duration> times;
 
     for (int rep = -1; rep < numReps; rep++) {
         matA.fill(1);
@@ -94,24 +109,15 @@ int main(const int argc, const char** argv)
         }
         auto end = clock::now();
 
-        duration timeTaken = end - begin;
-
         if (rep >= 0) {
-            timeTaken /= innerLoopSize;
-
-            totTime += timeTaken;
-
-            if (timeTaken > maxTime || rep == 0) maxTime = timeTaken;
-
-            if (timeTaken < minTime || rep == 0) minTime = timeTaken;
+            times.push_back((end - begin) / innerLoopSize);
         }
     }
 
-    double minTimeSec = convertDuration(minTime);
-    double maxTimeSec = convertDuration(maxTime);
-    double totTimeSec = convertDuration(totTime);
+    double minTime, meanTime, maxTime;
+    std::tie(minTime, meanTime, maxTime) = processTimes(times);
 
-    printf("Seconds: %10.4e  %10.4e  %10.4e\n", minTimeSec, totTimeSec / numReps, maxTimeSec);
+    printf("Seconds: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
 
     // const double numOps = 2 * matSize * matSize * matSize;
 
