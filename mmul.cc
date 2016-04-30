@@ -1,12 +1,14 @@
-#include <iostream>
 #include <ThreadPool.hh>
+#include <omp.h>
+#include <iostream>
 #include <vector>
 #include <cassert>
 #include <chrono>
 #include <algorithm>
 #include <numeric>
-#include <omp.h>
 
+// A matrix class, for convenience. This doesn't seem to slow things down appreciably
+// compared to plain C-style arrays. (The speed is comparable to a similar C code.)
 class Matrix
 {
 public:
@@ -38,8 +40,13 @@ public:
     size_t nCols;
 };
 
+// This is defined in dummy.cc. It doesn't do anything, and exists only to fool
+// the optimizer.
 void dummy(Matrix*);
 
+// This is the main function doing the matrix multiplication for the OpenMP case.
+// I lifted this directly from HW 7. Blocking or parallelizing over other axes might
+// be more efficient.
 void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out)
 {
     #pragma omp parallel for
@@ -56,8 +63,12 @@ void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out)
     }
 }
 
+// This is the main function doing the ThreadPool-based multiplication. I pass the pool
+// into the function to avoid re-spawning the threads each time.
 void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
 {
+    // I don't believe capture-by-reference will cause dangling references here
+    // since all work should be finished before this function returns.
     auto lambda = [&matA, &matB, &out] (size_t i) {
         for (size_t j = 0; j < matA.nCols; j++) {
             double sum = 0;
@@ -72,6 +83,7 @@ void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
     tp.ParallelFor(0, matA.nRows, lambda);
 }
 
+// A convenience function to convert a std::duration into a double.
 template<class T>
 double convertDuration(const T& dur)
 {
@@ -79,6 +91,8 @@ double convertDuration(const T& dur)
     return count * 1.0e-9;
 }
 
+// This convenience function parses a vector of std::durations, finds the extrema
+// and converts them to doubles.
 template<class T>
 auto processTimes(const std::vector<T>& times)
 {
@@ -94,6 +108,10 @@ auto processTimes(const std::vector<T>& times)
     return std::make_tuple(minSec, meanSec, maxSec);
 }
 
+// This is the core of the timing code. It runs the function `func` for the
+// set of arguments `args`, and repeats it `numReps` times. The function `reset`
+// is called using the same `args` list in between trials to re-initialize the
+// matrices.
 template<class FuncType, class ResetType, class ... ArgsType>
 std::tuple<double, double, double>
 timeMult(FuncType& func, ResetType& reset, int numReps, ArgsType&... args)
@@ -102,25 +120,24 @@ timeMult(FuncType& func, ResetType& reset, int numReps, ArgsType&... args)
     using duration = clock::duration;
 
     std::vector<duration> times;
-    int innerLoopSize = 10;
 
     for (int rep = -1; rep < numReps; rep++) {
         reset(args...);
 
         auto begin = clock::now();
-        for (int innerIter = 0; innerIter < innerLoopSize; innerIter++) {
-            func(args...);
-        }
+        func(args...);
         auto end = clock::now();
 
+        // Throw out the first run (rep == -1) to avoid cold-start
         if (rep >= 0) {
-            times.push_back((end - begin) / innerLoopSize);
+            times.push_back(end - begin);
         }
     }
 
     return processTimes(times);
 }
 
+// Function to re-initialize the matrices
 void clearMatrices(Matrix& matA, Matrix& matB, Matrix& matC)
 {
     matA.fill(1);
@@ -128,6 +145,8 @@ void clearMatrices(Matrix& matA, Matrix& matB, Matrix& matC)
     matC.fill(0);
 }
 
+// Unfortunately, since `timeMult` above calls `reset` with the same args as `func`,
+// we need this overload for the ThreadPool case.
 void tpClearMatrices(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& matC)
 {
     clearMatrices(matA, matB, matC);
