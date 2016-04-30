@@ -22,7 +22,7 @@ target_compile_options(STREAM_capture_test PUBLIC ${WARNING_FLAGS} ${OpenMP_CXX_
 set_target_properties(STREAM_capture_test PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED True)
 target_link_libraries(STREAM_capture_test ThreadPool ${OpenMP_CXX_FLAGS})
 
-add_executable(mmul mmul.cc dummy.cc)
+add_executable(mmul mmul.cc src/dummy.cc)
 target_compile_options(mmul PUBLIC ${WARNING_FLAGS} ${OpenMP_CXX_FLAGS})
 set_target_properties(mmul PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED True)
 target_link_libraries(mmul ThreadPool ${OpenMP_CXX_FLAGS})
