@@ -5,6 +5,7 @@
 #include <chrono>
 #include <algorithm>
 #include <numeric>
+#include <omp.h>
 
 class Matrix
 {
@@ -31,19 +32,21 @@ public:
 
 private:
     std::vector<double> data;
+
+public:
     size_t nRows;
     size_t nCols;
 };
 
 void dummy(Matrix*);
 
-void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out, const size_t matSize)
+void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out)
 {
     #pragma omp parallel for
-    for (size_t i = 0; i < matSize; i++) {
-        for (size_t j = 0; j < matSize; j++) {
+    for (size_t i = 0; i < matA.nRows; i++) {
+        for (size_t j = 0; j < matA.nCols; j++) {
             double sum = 0;
-            for (size_t k = 0; k < matSize; k++) {
+            for (size_t k = 0; k < matA.nCols; k++) {
                 sum += matA(i, k) * matB(k, j);
                 dummy(&matA);
                 dummy(&matB);
@@ -51,6 +54,22 @@ void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out, const size_t mat
             out(i, j) = sum;
         }
     }
+}
+
+void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
+{
+    auto lambda = [&matA, &matB, &out] (size_t i) {
+        for (size_t j = 0; j < matA.nCols; j++) {
+            double sum = 0;
+            for (size_t k = 0; k < matA.nCols; k++) {
+                sum += matA(i, k) * matB(k, j);
+                dummy(&matA);
+                dummy(&matB);
+            }
+            out(i, j) = sum;
+        }
+    };
+    tp.ParallelFor(0, matA.nRows, lambda);
 }
 
 template<class T>
@@ -75,37 +94,22 @@ auto processTimes(const std::vector<T>& times)
     return std::make_tuple(minSec, meanSec, maxSec);
 }
 
-int main(const int argc, const char** argv)
+template<class FuncType, class ResetType, class ... ArgsType>
+std::tuple<double, double, double>
+timeMult(FuncType& func, ResetType& reset, int numReps, ArgsType&... args)
 {
-    size_t matSize = 1000;
-    if (argc > 1) {
-        matSize = atoi(argv[1]);
-    }
-
-    int numReps = 5;
-    if (argc > 2) {
-        numReps = atoi(argv[2]);
-    }
-
-    int innerLoopSize = 10;
-
-    Matrix matA (matSize, matSize);
-    Matrix matB (matSize, matSize);
-    Matrix matC (matSize, matSize);
-
     using clock = std::chrono::high_resolution_clock;
     using duration = clock::duration;
 
     std::vector<duration> times;
+    int innerLoopSize = 10;
 
     for (int rep = -1; rep < numReps; rep++) {
-        matA.fill(1);
-        matB.fill(2);
-        matC.fill(0);
+        reset(args...);
 
         auto begin = clock::now();
         for (int innerIter = 0; innerIter < innerLoopSize; innerIter++) {
-            ompMatrixMultiply(matA, matB, matC, matSize);
+            func(args...);
         }
         auto end = clock::now();
 
@@ -114,14 +118,60 @@ int main(const int argc, const char** argv)
         }
     }
 
+    return processTimes(times);
+}
+
+void clearMatrices(Matrix& matA, Matrix& matB, Matrix& matC)
+{
+    matA.fill(1);
+    matB.fill(2);
+    matC.fill(0);
+}
+
+void tpClearMatrices(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& matC)
+{
+    clearMatrices(matA, matB, matC);
+}
+
+int main(const int argc, const char** argv)
+{
+    size_t matSize = 1000;
+    if (argc > 1) {
+        matSize = atoi(argv[1]);
+    }
+
+    int numThreads = 2;
+    if (argc > 2) {
+        numThreads = atoi(argv[2]);
+    }
+    omp_set_num_threads(numThreads);
+
+    int numReps = 5;
+    if (argc > 3) {
+        numReps = atoi(argv[3]);
+    }
+
+    Matrix matA (matSize, matSize);
+    Matrix matB (matSize, matSize);
+    Matrix matC (matSize, matSize);
+
     double minTime, meanTime, maxTime;
-    std::tie(minTime, meanTime, maxTime) = processTimes(times);
 
-    printf("Seconds: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    std::tie(minTime, meanTime, maxTime) =
+        timeMult(ompMatrixMultiply, clearMatrices, numReps, matA, matB, matC);
 
-    // const double numOps = 2 * matSize * matSize * matSize;
+    printf("            %10s  %10s  %10s\n", "Min", "Mean", "Max");
+    printf("    OpenMP: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
 
-    // printf("FLOPS: %10.4e  %10.4e  %10.4e\n", numOps / minTime, numOps / (totTime / numReps), numOps / maxTime);
+    // Use a block to limit scope of thread pool
+    {
+        ThreadPool tp (numThreads);
+
+        std::tie(minTime, meanTime, maxTime) =
+            timeMult(tpMatrixMultiply, tpClearMatrices, numReps, tp, matA, matB, matC);
+
+        printf("ThreadPool: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    }
 
     return 0;
 }
