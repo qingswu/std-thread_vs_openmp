@@ -11,7 +11,7 @@ AR       = ar
 RM       = rm -f
 
 # Flags to be passed to both C and C++ code
-CPPFLAGS = -Wall -Wextra -pedantic -O3 -fopenmp
+CPPFLAGS = -Wall -Wextra -pedantic -O3 -fopenmp -g
 
 # Flags to be passed to C code
 CFLAGS   = 
@@ -36,7 +36,7 @@ SRC_DIRECTORIES = src ThreadPool/src
 
 # A list of directories containing include files.  Each directory will
 # be made available for #include directives for included files.
-INC_DIRECTORIES = include ThreadPool/include
+INC_DIRECTORIES = include ThreadPool/include ThreadPool/concurrentqueue
 
 # A list of directories that contain libraries.  The list can also
 # contain patterns that expand to directories that contain libraries.

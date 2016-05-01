@@ -13,7 +13,7 @@ int main (int argc, char** argv) {
   int N = 1e7;
   int NUM_THREADS = 4;
   if (argc>1) { NUM_THREADS = atoi(argv[1]); }
-  if (argc>2) { N = atoi(argv[2]); }
+  if (argc>2) { N = atoi(argv[2]); N = (N>0) ? N : 1; }
 
 
   auto a = (double*)calloc(N,sizeof(double));
