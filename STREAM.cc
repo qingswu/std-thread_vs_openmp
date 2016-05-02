@@ -2,6 +2,7 @@
 
 #include "ThreadPool.hh"
 #include "Timer.hh"
+#include "threadpool11/threadpool11.hpp"
 #include "omp.h"
 
 using namespace std;
@@ -28,8 +29,6 @@ int main (int argc, char** argv) {
 
   auto benchmark = [&](auto callable) {
 
-    ThreadPool pool(NUM_THREADS);
-
 // -----------------------------------------------------------------------------------------------
     cout << "single thread performance\n";
 
@@ -47,23 +46,6 @@ int main (int argc, char** argv) {
       for (int j=0; j<N; j++) {
         callable(j,a,b,c);
       }
-    }
-    cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
-
-// -----------------------------------------------------------------------------------------------
-    cout << "std::thread ThreadPool performance\n";
-
-    // cold start for timing purposes
-    pool.ParallelFor(0, N, callable, a, b, c);
-
-    tperformance = 0.0;
-    for (int i=0; i<ntrials; i++)
-    {
-      Timer timer([&](int elapsed){
-          //cout << "Trial " << i << ": "<< elapsed*1e-6 << " ms\n";
-          tperformance+=elapsed;
-      });
-      pool.ParallelFor(0, N, callable, a, b, c);
     }
     cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
 
@@ -95,7 +77,54 @@ int main (int argc, char** argv) {
     cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
 
 // -----------------------------------------------------------------------------------------------
+    cout << "std::thread ThreadPool performance\n";
 
+    {
+      ThreadPool pool(NUM_THREADS);
+
+      // i==0 is a cold start for timing purposes
+      tperformance = 0.0;
+      for (int i=0; i<ntrials+1; i++)
+      {
+        Timer timer([&](int elapsed){ if(i>0) tperformance+=elapsed; });
+        pool.ParallelFor(0, N, callable, a, b, c);
+      }
+      cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
+    }
+
+
+// -----------------------------------------------------------------------------------------------
+    {
+      threadpool11::Pool pool(NUM_THREADS);
+      cout << "threadpool11 performance\n";
+
+      tperformance = 0.0;
+      for (int i=0; i<ntrials+1; i++)
+      {
+        // i==0 is a cold start for timing purposes
+        Timer timer([&](int elapsed){ if(i>0) tperformance+=elapsed; });
+
+        //std::array<std::future<void>, NUM_THREADS> futures;
+        std::future<void>* futures = new std::future<void>[NUM_THREADS];
+        auto begin = 0; auto end = N;
+        int chunk = (end - begin) / NUM_THREADS;
+        for (int j = 0; j < NUM_THREADS; ++j) {
+          futures[j] = pool.postWork<void>([=]() {
+              uint32_t threadstart = begin + j*chunk;
+              uint32_t threadstop = (j == NUM_THREADS - 1) ? end : threadstart + chunk;
+              for (uint32_t it = threadstart; it < threadstop; ++it) {
+                callable(it,a,b,c);
+              }
+            });
+        }
+        for (int j = 0; j < NUM_THREADS; ++j) {
+          futures[j].get();
+        }
+      }
+      cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
+    }
+
+// -----------------------------------------------------------------------------------------------
   };
 
   cout<< endl << " - - - - - - - - - | COPY | - - - - - - - - - " << endl << endl;
