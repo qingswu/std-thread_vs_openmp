@@ -155,7 +155,7 @@ int main (int argc, char** argv) {
       cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
     }
 
-    cout << "std::thread ThreadPool performance (NUM_THREADS*4 tasks)\n";
+    cout << "std::thread ThreadPool performance (NUM_THREADS*2 tasks)\n";
     {
       ThreadPool pool(NUM_THREADS);
 
