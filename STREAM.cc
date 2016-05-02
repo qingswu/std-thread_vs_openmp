@@ -1,8 +1,10 @@
 #include <iostream>
 #include <iomanip>
 
-#include "ThreadPool.hh"
 #include "Timer.hh"
+
+#include "ThreadPool.hh"
+#include "LockfreeThreadPool.hh"
 #include "threadpool11/threadpool11.hpp"
 #include "omp.h"
 
@@ -194,7 +196,45 @@ int main (int argc, char** argv) {
       print_timings(tmin,tsum,tmax);
     }
 
+// -----------------------------------------------------------------------------------------------
+    cout << setw(20) << std::right << "LFThreadPool:  ";
 
+    {
+      LockfreeThreadPool pool(NUM_THREADS);
+
+      // i==0 is a cold start for timing purposes
+      tsum = 0.0; tmax = 0.0; tmin = 1e10;
+      for (int i=0; i<ntrials+1; i++)
+      {
+        Timer timer([&](int elapsed){ if (i>0) {
+              tsum+=elapsed;
+              if (elapsed < tmin) tmin = elapsed;
+              if (elapsed > tmax) tmax = elapsed;}
+          });
+        pool.ParallelFor(0, N, 0, callable, a, b, c);
+        //pool.ParallelFor(0, N, callable, a, b, c);
+      }
+      print_timings(tmin,tsum,tmax);
+    }
+
+    cout << setw(20) << std::right << "LFThreadPool(x2):  ";
+    {
+      LockfreeThreadPool pool(NUM_THREADS);
+
+      // i==0 is a cold start for timing purposes
+      tsum = 0.0; tmax = 0.0; tmin = 1e10;
+      for (int i=0; i<ntrials+1; i++)
+      {
+        Timer timer([&](int elapsed){ if (i>0) {
+              tsum+=elapsed;
+              if (elapsed < tmin) tmin = elapsed;
+              if (elapsed > tmax) tmax = elapsed;}
+          });
+        pool.ParallelFor(0, N, NUM_THREADS*2, callable, a, b, c);
+        //pool.ParallelFor(0, N, callable, a, b, c);
+      }
+      print_timings(tmin,tsum,tmax);
+    }
 
 // -----------------------------------------------------------------------------------------------
   };

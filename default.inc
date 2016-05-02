@@ -36,7 +36,7 @@ SRC_DIRECTORIES = src ThreadPool/src threadpool11/threadpool11/src
 
 # A list of directories containing include files.  Each directory will
 # be made available for #include directives for included files.
-INC_DIRECTORIES = threadpool11/threadpool11/include threadpool11/ext/include include ThreadPool/include
+INC_DIRECTORIES = threadpool11/threadpool11/include threadpool11/ext/include include ThreadPool/include ThreadPool/concurrentqueue
 
 # A list of directories that contain libraries.  The list can also
 # contain patterns that expand to directories that contain libraries.
