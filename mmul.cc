@@ -80,7 +80,7 @@ void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
             out(i, j) = sum;
         }
     };
-    tp.ParallelFor(0, matA.nRows, lambda);
+    tp.ParallelFor(0, matA.nRows, 0, lambda);
 }
 
 // A convenience function to convert a std::duration into a double.

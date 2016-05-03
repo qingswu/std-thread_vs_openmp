@@ -54,7 +54,7 @@ int main (int argc, char** argv) {
     cout << "std::thread ThreadPool performance\n";
 
     // cold start for timing purposes
-    pool.ParallelFor(0, N, callable, a, b, c);
+    pool.ParallelFor(0, N, 0u, callable, a, b, c);
 
     tperformance = 0.0;
     for (int i=0; i<ntrials; i++)
@@ -63,7 +63,7 @@ int main (int argc, char** argv) {
           //cout << "Trial " << i << ": "<< elapsed*1e-6 << " ms\n";
           tperformance+=elapsed;
       });
-      pool.ParallelFor(0, N, callable, a, b, c);
+      pool.ParallelFor(0, N, 0u, callable, a, b, c);
     }
     cout << "Average: " << tperformance*1e-6 / ntrials << " ms\n\n";
 
