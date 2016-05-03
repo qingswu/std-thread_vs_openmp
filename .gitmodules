@@ -1,3 +1,6 @@
 [submodule "ThreadPool"]
 	path = ThreadPool
 	url = git@github.com:ExtremeScale/ThreadPool.git
+[submodule "threadpool11"]
+	path = threadpool11
+	url = https://github.com/tghosgor/threadpool11
