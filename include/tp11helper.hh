@@ -5,7 +5,7 @@ template <typename T, typename... Params>
 void ParallelFor(threadpool11::Pool& pool, uint32_t begin, uint32_t end, uint32_t n_tasks, T SerialFunction, Params&&... params) {
 
         n_tasks = (n_tasks > pool.getWorkerCount()) ? n_tasks : pool.getWorkerCount();
-        std::future<void>* futures = new std::future<void>[n_tasks];
+        std::future<void> futures[n_tasks];
         int chunk = (end - begin) / n_tasks;
         for (auto j = 0u; j < n_tasks; ++j) {
                 futures[j] = pool.postWork<void>([=]() {
