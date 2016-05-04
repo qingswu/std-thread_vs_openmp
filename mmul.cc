@@ -1,6 +1,7 @@
 #include <ThreadPool.hh>
 #include <LockfreeThreadPool.hh>
 #include <ThreadPoolBase.hh>
+#include <tp11helper.hh>
 #include <omp.h>
 #include <iostream>
 #include <vector>
@@ -84,6 +85,24 @@ void tpMatrixMultiply(ThreadPoolBase& tp, Matrix& matA, Matrix& matB, Matrix& ou
     };
     tp.ParallelFor(0, matA.nRows, 0, lambda);
 }
+// a threadpool11 version of the matrix multiply
+void tp11MatrixMultiply(threadpool11::Pool& tp, Matrix& matA, Matrix& matB, Matrix& out)
+{
+    // I don't believe capture-by-reference will cause dangling references here
+    // since all work should be finished before this function returns.
+    auto lambda = [&matA, &matB, &out] (size_t i) {
+        for (size_t j = 0; j < matA.nCols; j++) {
+            double sum = 0;
+            for (size_t k = 0; k < matA.nCols; k++) {
+                sum += matA(i, k) * matB(k, j);
+                dummy(&matA);
+                dummy(&matB);
+            }
+            out(i, j) = sum;
+        }
+    };
+    ParallelFor(tp, 0, matA.nRows, 0, lambda);
+}
 
 // A convenience function to convert a std::duration into a double.
 template<class T>
@@ -153,7 +172,10 @@ void tpClearMatrices(ThreadPoolBase& tp, Matrix& matA, Matrix& matB, Matrix& mat
 {
     clearMatrices(matA, matB, matC);
 }
-
+void tp11ClearMatrices(threadpool11::Pool& tp11, Matrix& matA, Matrix& matB, Matrix& matC)
+{
+    clearMatrices(matA, matB, matC);
+}
 int main(const int argc, const char** argv)
 {
     size_t matSize = 1000;
@@ -201,6 +223,14 @@ int main(const int argc, const char** argv)
             timeMult(tpMatrixMultiply, tpClearMatrices, numReps, lftp, matA, matB, matC);
 
         printf("LFThreadPool: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    }
+
+    {
+        threadpool11::Pool tp11(numThreads);
+        std::tie(minTime, meanTime, maxTime) =
+            timeMult(tp11MatrixMultiply, tp11ClearMatrices, numReps, tp11, matA, matB, matC);
+
+        printf("threadpool11: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
     }
 
     return 0;

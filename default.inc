@@ -11,16 +11,16 @@ AR       = ar
 RM       = rm -f
 
 # Flags to be passed to both C and C++ code
-CPPFLAGS = -Wall -Wextra -pedantic -O3 -fopenmp
+CPPFLAGS = -Wall -Wextra -Wno-unused-variable -pedantic -O3 -fopenmp
 
 # Flags to be passed to C code
-CFLAGS   = 
+CFLAGS   = -Wno-unused-variable
 
 # Flags to be passed to C++ code
-CXXFLAGS = 
+CXXFLAGS = -Wno-unused-variable
 
 # Flags to be passed to the linker, prior to listing of object files.
-LDFLAGS  = -fopenmp
+LDFLAGS  = -fopenmp -Wno-unused-variable
 
 # Flags to be passed to the linker, after the listing of object files.
 LDLIBS   =
@@ -32,11 +32,11 @@ EXE_DIRECTORIES = .
 # A list of directories containing other source files.  Each file will
 # be compiled, with the resulting source file being linked into each
 # executable.
-SRC_DIRECTORIES = src ThreadPool/src
+SRC_DIRECTORIES = src ThreadPool/src threadpool11/threadpool11/src
 
 # A list of directories containing include files.  Each directory will
 # be made available for #include directives for included files.
-INC_DIRECTORIES = include ThreadPool/include
+INC_DIRECTORIES = threadpool11/threadpool11/include threadpool11/ext/include include ThreadPool/include ThreadPool/concurrentqueue
 
 # A list of directories that contain libraries.  The list can also
 # contain patterns that expand to directories that contain libraries.
