@@ -44,7 +44,7 @@ int main (int argc, char** argv) {
     cout << setw(10) << std::internal << "Max." << endl;
 
 
-    cout << setw(20) << std::right << "LFThreadPool(x2):  ";
+    cout << setw(20) << std::right << "LFThreadPool(x8):  ";
     {
       LockfreeThreadPool pool(NUM_THREADS);
 

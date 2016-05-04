@@ -3,6 +3,7 @@
 
 #include "Timer.hh"
 #include "threadpool11/threadpool11.hpp"
+#include "tp11helper.hh"
 
 using namespace std;
 
@@ -49,7 +50,7 @@ int main (int argc, char** argv) {
 // -----------------------------------------------------------------------------------------------
     {
       threadpool11::Pool pool(NUM_THREADS);
-      cout << setw(20) << std::right << "threadpool11(x2):  ";
+      cout << setw(20) << std::right << "threadpool11:  ";
 
       int nsize = ntasks;
 
@@ -62,22 +63,7 @@ int main (int argc, char** argv) {
               if (elapsed < tmin) tmin = elapsed;
               if (elapsed > tmax) tmax = elapsed;}
           });
-
-        std::future<void>* futures = new std::future<void>[nsize];
-        auto begin = 0; auto end = N;
-        int chunk = (end - begin) / nsize;
-        for (int j = 0; j < nsize; ++j) {
-          futures[j] = pool.postWork<void>([=]() {
-              uint32_t threadstart = begin + j*chunk;
-              uint32_t threadstop = (j == nsize - 1) ? end : threadstart + chunk;
-              for (uint32_t it = threadstart; it < threadstop; ++it) {
-                callable(it,a,b,c);
-              }
-            });
-        }
-        for (int j = 0; j < NUM_THREADS; ++j) {
-          futures[j].get();
-        }
+        ParallelFor(pool, 0, N, nsize, callable, a, b, c);
       }
       print_timings(tmin,tsum,tmax);
     }

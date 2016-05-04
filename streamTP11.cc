@@ -3,6 +3,8 @@
 
 #include "Timer.hh"
 #include "threadpool11/threadpool11.hpp"
+#include "tp11helper.hh"
+
 
 using namespace std;
 
@@ -46,7 +48,9 @@ int main (int argc, char** argv) {
 // -----------------------------------------------------------------------------------------------
     {
       threadpool11::Pool pool(NUM_THREADS);
-      cout << setw(20) << std::right << "threadpool11:  ";
+      cout << setw(20) << std::right << "threadpool11(x2):  ";
+
+      int nsize = NUM_THREADS*2;
 
       tsum = 0.0; tmax = 0.0; tmin = 1e10;
       for (int i=0; i<ntrials+1; i++)
@@ -57,22 +61,7 @@ int main (int argc, char** argv) {
               if (elapsed < tmin) tmin = elapsed;
               if (elapsed > tmax) tmax = elapsed;}
           });
-        //std::array<std::future<void>, NUM_THREADS> futures;
-        std::future<void>* futures = new std::future<void>[NUM_THREADS];
-        auto begin = 0; auto end = N;
-        int chunk = (end - begin) / NUM_THREADS;
-        for (int j = 0; j < NUM_THREADS; ++j) {
-          futures[j] = pool.postWork<void>([=]() {
-              uint32_t threadstart = begin + j*chunk;
-              uint32_t threadstop = (j == NUM_THREADS - 1) ? end : threadstart + chunk;
-              for (uint32_t it = threadstart; it < threadstop; ++it) {
-                callable(it,a,b,c);
-              }
-            });
-        }
-        for (int j = 0; j < NUM_THREADS; ++j) {
-          futures[j].get();
-        }
+        ParallelFor(pool, 0, N, NUM_THREADS, callable, a, b, c);
       }
       print_timings(tmin,tsum,tmax);
     }
