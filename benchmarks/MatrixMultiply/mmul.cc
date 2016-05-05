@@ -1,4 +1,7 @@
 #include <ThreadPool.hh>
+#include <LockfreeThreadPool.hh>
+#include <ThreadPoolBase.hh>
+#include <tp11helper.hh>
 #include <omp.h>
 #include <iostream>
 #include <vector>
@@ -65,7 +68,7 @@ void ompMatrixMultiply(Matrix& matA, Matrix& matB, Matrix& out)
 
 // This is the main function doing the ThreadPool-based multiplication. I pass the pool
 // into the function to avoid re-spawning the threads each time.
-void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
+void tpMatrixMultiply(ThreadPoolBase& tp, Matrix& matA, Matrix& matB, Matrix& out)
 {
     // I don't believe capture-by-reference will cause dangling references here
     // since all work should be finished before this function returns.
@@ -80,7 +83,25 @@ void tpMatrixMultiply(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& out)
             out(i, j) = sum;
         }
     };
-    tp.ParallelFor(0, matA.nRows, lambda);
+    tp.ParallelFor(0, matA.nRows, 0, lambda);
+}
+// a threadpool11 version of the matrix multiply
+void tp11MatrixMultiply(threadpool11::Pool& tp, Matrix& matA, Matrix& matB, Matrix& out)
+{
+    // I don't believe capture-by-reference will cause dangling references here
+    // since all work should be finished before this function returns.
+    auto lambda = [&matA, &matB, &out] (size_t i) {
+        for (size_t j = 0; j < matA.nCols; j++) {
+            double sum = 0;
+            for (size_t k = 0; k < matA.nCols; k++) {
+                sum += matA(i, k) * matB(k, j);
+                dummy(&matA);
+                dummy(&matB);
+            }
+            out(i, j) = sum;
+        }
+    };
+    ParallelFor(tp, 0, matA.nRows, 0, lambda);
 }
 
 // A convenience function to convert a std::duration into a double.
@@ -147,11 +168,14 @@ void clearMatrices(Matrix& matA, Matrix& matB, Matrix& matC)
 
 // Unfortunately, since `timeMult` above calls `reset` with the same args as `func`,
 // we need this overload for the ThreadPool case.
-void tpClearMatrices(ThreadPool& tp, Matrix& matA, Matrix& matB, Matrix& matC)
+void tpClearMatrices(ThreadPoolBase& tp, Matrix& matA, Matrix& matB, Matrix& matC)
 {
     clearMatrices(matA, matB, matC);
 }
-
+void tp11ClearMatrices(threadpool11::Pool& tp11, Matrix& matA, Matrix& matB, Matrix& matC)
+{
+    clearMatrices(matA, matB, matC);
+}
 int main(const int argc, const char** argv)
 {
     size_t matSize = 1000;
@@ -179,8 +203,8 @@ int main(const int argc, const char** argv)
     std::tie(minTime, meanTime, maxTime) =
         timeMult(ompMatrixMultiply, clearMatrices, numReps, matA, matB, matC);
 
-    printf("            %10s  %10s  %10s\n", "Min", "Mean", "Max");
-    printf("    OpenMP: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    printf("              %10s  %10s  %10s\n", "Min", "Mean", "Max");
+    printf("      OpenMP: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
 
     // Use a block to limit scope of thread pool
     {
@@ -189,7 +213,24 @@ int main(const int argc, const char** argv)
         std::tie(minTime, meanTime, maxTime) =
             timeMult(tpMatrixMultiply, tpClearMatrices, numReps, tp, matA, matB, matC);
 
-        printf("ThreadPool: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+        printf("  ThreadPool: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    }
+
+    {
+        LockfreeThreadPool lftp (numThreads);
+
+        std::tie(minTime, meanTime, maxTime) =
+            timeMult(tpMatrixMultiply, tpClearMatrices, numReps, lftp, matA, matB, matC);
+
+        printf("LFThreadPool: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
+    }
+
+    {
+        threadpool11::Pool tp11(numThreads);
+        std::tie(minTime, meanTime, maxTime) =
+            timeMult(tp11MatrixMultiply, tp11ClearMatrices, numReps, tp11, matA, matB, matC);
+
+        printf("threadpool11: %10.4e  %10.4e  %10.4e\n", minTime, meanTime, maxTime);
     }
 
     return 0;
