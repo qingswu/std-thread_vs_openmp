@@ -11,23 +11,23 @@ AR       = ar
 RM       = rm -f
 
 # Flags to be passed to both C and C++ code
-CPPFLAGS = -Wall -Wextra -Wno-unused-variable -pedantic -O3 -fopenmp
+CPPFLAGS = -Wall -Wextra -pedantic -O3 -fopenmp -Wno-unused-parameter -Wno-unused-variable
 
 # Flags to be passed to C code
-CFLAGS   = -Wno-unused-variable
+CFLAGS   = 
 
 # Flags to be passed to C++ code
-CXXFLAGS = -Wno-unused-variable
+CXXFLAGS = 
 
 # Flags to be passed to the linker, prior to listing of object files.
-LDFLAGS  = -fopenmp -Wno-unused-variable
+LDFLAGS  = -fopenmp 
 
 # Flags to be passed to the linker, after the listing of object files.
 LDLIBS   =
 
 # A list of directories containing source files containing "int
 # main()".  Each file will be compiled into a separate executable.
-EXE_DIRECTORIES = .
+EXE_DIRECTORIES = . benchmarks/STREAM benchmarks/MatrixMultiply
 
 # A list of directories containing other source files.  Each file will
 # be compiled, with the resulting source file being linked into each
